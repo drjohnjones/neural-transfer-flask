@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎨 Neural Style Transfer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            padding: 30px 0;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        
+        .upload-section {
+            margin-bottom: 30px;
+        }
+        
+        .upload-box {
+            border: 3px dashed #333;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .upload-box:hover {
+            border-color: #000;
+            background: #f8f8f8;
+        }
+        
+        .upload-box.dragover {
+            background: #e8e8e8;
+            border-color: #000;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .preview-section {
+            display: none;
+            margin: 30px 0;
+        }
+        
+        .preview-section.show {
+            display: block;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .styles-section {
+            margin: 30px 0;
+        }
+        
+        .styles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .style-card {
+            cursor: pointer;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .style-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+        
+        .style-card.selected {
+            border-color: #000;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.2);
+        }
+        
+        .style-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .style-name {
+            padding: 10px;
+            text-align: center;
+            font-size: 0.9em;
+            background: #f8f8f8;
+        }
+        
+        .settings {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f8f8;
+            border-radius: 15px;
+        }
+        
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .setting-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .setting-group select {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            background: white;
+        }
+        
+        .setting-group select:focus {
+            outline: none;
+            border-color: #000;
+        }
+        
+        .strength-note {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .btn {
+            padding: 15px 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #000 0%, #1a1a1a 100%);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #000;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .progress-text {
+            font-size: 1.1em;
+            color: #333;
+            margin-top: 15px;
+        }
+        
+        .result-section {
+            display: none;
+            margin-top: 30px;
+        }
+        
+        .result-section.show {
+            display: block;
+        }
+        
+        .result-image {
+            max-width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .result-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn-download {
+            flex: 1;
+            padding: 12px;
+            background: #4ade80;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+        
+        .btn-download:hover {
+            background: #22c55e;
+            transform: translateY(-2px);
+        }
+        
+        .btn-again {
+            flex: 1;
+            padding: 12px;
+            background: #1a1a1a;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+        
+        .btn-again:hover {
+            background: #000;
+            transform: translateY(-2px);
+        }
+        
+        .error {
+            display: none;
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .error.show {
+            display: block;
+        }
+        
+        .info-box {
+            background: #f8f8f8;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 30px;
+            border-left: 4px solid #000;
+        }
+        
+        .info-box h3 {
+            color: #000;
+            margin-bottom: 15px;
+        }
+        
+        .info-box ul {
+            line-height: 1.8;
+            color: #333;
+        }
+        
+        .info-box ul ul {
+            margin-left: 20px;
+            margin-top: 5px;
+        }
+        
+        .strength-guide {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #000;
+        }
+        
+        .strength-guide strong {
+            color: #000;
+        }
+        
+        .strength-guide-content {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 8px;
+            line-height: 1.6;
+        }
+        
+        .success-badge {
+            display: inline-block;
+            background: #4ade80;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+        
+        h2 {
+            color: #1a1a1a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Neural Style Transfer</h1>
+            <p>Transform your photos into artistic masterpieces </p>
+        </div>
+        
+        <div class="main-content">
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <h2 style="margin-bottom: 15px;">1. Upload Your Photo</h2>
+                <div class="upload-box" id="uploadBox" onclick="document.getElementById('fileInput').click()">
+                    <div style="font-size: 3em; margin-bottom: 10px;">📸</div>
+                    <p style="font-size: 1.2em; margin-bottom: 10px;">Click to upload or drag & drop</p>
+                    <p style="color: #666;">Supports: JPG, PNG, WEBP (max 16MB)</p>
+                </div>
+                <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)">
+            </div>
+            
+            <!-- Preview -->
+            <div class="preview-section" id="previewSection">
+                <h2 style="margin-bottom: 15px;">Your Photo</h2>
+                <img id="previewImage" class="preview-image">
+            </div>
+            
+            <!-- Style Selection -->
+            <div class="styles-section" id="stylesSection" style="display: none;">
+                <h2 style="margin-bottom: 15px;">2. Choose Artistic Style</h2>
+                <div class="styles-grid" id="stylesGrid">
+                    {% for style in styles %}
+                    <div class="style-card" onclick="selectStyle('{{ style.name }}')" data-style="{{ style.name }}">
+                        <img src="{{ style.path }}" alt="{{ style.name }}">
+                        <div class="style-name">{{ style.name.replace('.jpg', '').replace('.png', '').replace('_', ' ').title() }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Settings -->
+            <div class="settings" id="settingsSection" style="display: none;">
+                <div class="setting-group">
+                    <label>Processing Time ⏱️</label>
+                    <select id="steps">
+                        <option value="200">Fast (200 steps) - 2 min</option>
+                        <option value="300" selected>Balanced (300 steps) - 3 min</option>
+                        <option value="500">Quality (500 steps) - 5 min</option>
+                    </select>
+                </div>
+                
+                <div class="setting-group">
+                    <label>Style Strength 🔥</label>
+                    <select id="styleWeight">
+                        <option value="1e6">Light (Subtle)</option>
+                        <option value="1e7">Medium (Balanced)</option>
+                        <option value="1e8" selected>Strong ⭐ (Recommended)</option>
+                        <option value="5e8">Very Strong (Bold)</option>
+                        <option value="1e9">Extreme (Intense)</option>
+                    </select>
+                    <div class="strength-note">Works for ALL art styles!</div>
+                </div>
+                
+                <div class="setting-group">
+                    <label>Content Preservation</label>
+                    <select id="contentWeight">
+                        <option value="0.1">Low (More Artistic)</option>
+                        <option value="1" selected>Balanced</option>
+                        <option value="10">High (Keep Photo)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Generate Button -->
+            <button class="btn btn-primary" onclick="startTransfer()" id="generateBtn" style="display: none; margin-top: 20px;">
+                🎨 Apply Style Transfer
+            </button>
+            
+            <!-- Loading -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p style="font-size: 1.2em;">Creating your masterpiece...</p>
+                <p class="progress-text">This will take 2-5 minutes. Please be patient.</p>
+            </div>
+            
+            <!-- Error -->
+            <div class="error" id="error"></div>
+            
+            <!-- Result -->
+            <div class="result-section" id="resultSection">
+                <h2 style="margin-bottom: 20px;">✨ Your Artistic Masterpiece</h2>
+                <img id="resultImage" class="result-image">
+                <div class="result-actions">
+                    <button class="btn-download" onclick="downloadResult()">
+                        💾 Download Image
+                    </button>
+                    <button class="btn-again" onclick="startAgain()">
+                        🔄 Create Another
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Info -->
+            <div class="info-box">
+                <h3>💡 Tips for Best Results:</h3>
+                <ul style="list-style-position: inside;">
+                    <li><strong>Image Quality:</strong> Use clear, well-lit photos</li>
+                    <li><strong>Best Subjects:</strong> Portraits, landscapes, architecture work great</li>
+                    <li><strong>Style Strength:</strong> Higher = more artistic transformation (works for ALL styles)</li>
+                    <li><strong>Processing Time:</strong> 2-3 minutes depending on quality settings</li>
+                    <li><strong>Different Styles:</strong>
+                        <ul>
+                            <li>Kandinsky → Bold geometric patterns & primary colors</li>
+                            <li>Van Gogh → Swirling brushstrokes & emotional intensity</li>
+                            <li>Monet → Soft impressionist blending & dreamy atmosphere</li>
+                            <li>Picasso → Cubist fragmentation & bold forms</li>
+                            <li>Hokusai → Japanese woodblock style with bold lines</li>
+                        </ul>
+                    </li>
+                </ul>
+                
+                <div class="strength-guide">
+                    <strong>🎯 Style Strength Guide:</strong>
+                    <div class="strength-guide-content">
+                        Light → Subtle artistic touch<br>
+                        Medium → Noticeable transformation<br>
+                        <strong>Strong → Dramatic effect (Recommended!)</strong><br>
+                        Very Strong → Heavy stylization<br>
+                        Extreme → Almost pure art style
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let uploadedFile = null;
+        let selectedStyle = null;
+        let resultFilename = null;
+        
+        // Drag and drop
+        const uploadBox = document.getElementById('uploadBox');
+        
+        uploadBox.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadBox.classList.add('dragover');
+        });
+        
+        uploadBox.addEventListener('dragleave', () => {
+            uploadBox.classList.remove('dragover');
+        });
+        
+        uploadBox.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadBox.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+        
+        async function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showError('Please upload an image file');
+                return;
+            }
+            
+            if (file.size > 16 * 1024 * 1024) {
+                showError('File too large. Maximum 16MB');
+                return;
+            }
+            
+            // Preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('previewImage').src = e.target.result;
+                document.getElementById('previewSection').classList.add('show');
+            };
+            reader.readAsDataURL(file);
+            
+            // Upload
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    uploadedFile = data.filename;
+                    document.getElementById('stylesSection').style.display = 'block';
+                    document.getElementById('settingsSection').style.display = 'grid';
+                } else {
+                    showError(data.error || 'Upload failed');
+                }
+            } catch (error) {
+                showError('Upload failed: ' + error.message);
+            }
+        }
+        
+        function selectStyle(styleName) {
+            document.querySelectorAll('.style-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            document.querySelector(`.style-card[data-style="${styleName}"]`).classList.add('selected');
+            
+            selectedStyle = styleName;
+            document.getElementById('generateBtn').style.display = 'block';
+        }
+        
+        async function startTransfer() {
+            if (!uploadedFile || !selectedStyle) {
+                showError('Please upload an image and select a style');
+                return;
+            }
+            
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('resultSection').classList.remove('show');
+            document.getElementById('error').classList.remove('show');
+            document.getElementById('generateBtn').disabled = true;
+            
+            const steps = document.getElementById('steps').value;
+            const styleWeight = document.getElementById('styleWeight').value;
+            const contentWeight = document.getElementById('contentWeight').value;
+            
+            try {
+                const response = await fetch('/transfer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        content: uploadedFile,
+                        style: selectedStyle,
+                        steps: steps,
+                        style_weight: styleWeight,
+                        content_weight: contentWeight
+                    })
+                });
+                
+                const data = await response.json();
+                
+                document.getElementById('loading').classList.remove('show');
+                document.getElementById('generateBtn').disabled = false;
+                
+                if (data.success) {
+                    resultFilename = data.output;
+                    document.getElementById('resultImage').src = '/output/' + data.output + '?t=' + Date.now();
+                    document.getElementById('resultSection').classList.add('show');
+                } else {
+                    showError(data.error || 'Style transfer failed');
+                }
+            } catch (error) {
+                document.getElementById('loading').classList.remove('show');
+                document.getElementById('generateBtn').disabled = false;
+                showError('Transfer failed: ' + error.message);
+            }
+        }
+        
+        function downloadResult() {
+            if (resultFilename) {
+                window.location.href = '/download/' + resultFilename;
+            }
+        }
+        
+        function startAgain() {
+            document.getElementById('resultSection').classList.remove('show');
+            document.getElementById('previewSection').classList.remove('show');
+            document.getElementById('stylesSection').style.display = 'none';
+            document.getElementById('settingsSection').style.display = 'none';
+            document.getElementById('generateBtn').style.display = 'none';
+            
+            document.querySelectorAll('.style-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            uploadedFile = null;
+            selectedStyle = null;
+            resultFilename = null;
+            
+            document.getElementById('fileInput').value = '';
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = '❌ ' + message;
+            errorDiv.classList.add('show');
+            
+            setTimeout(() => {
+                errorDiv.classList.remove('show');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

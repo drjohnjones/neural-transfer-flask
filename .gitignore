@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv
+
+# Data folders
+data/uploads/*
+data/output/*
+data/videos/
+data/test/
+
+# Keep only style images
+!data/style/
+
+# Models (will download on deploy)
+*.pth
+*.pt
+models/
+
+# Videos
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# OS
+.DS_Store
+.DS_Store?
+
+# IDE
+.vscode/
+.idea/
+
+# Large files
+*.zip
+*.tar.gz
